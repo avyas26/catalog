@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  annotations:
+    tekton.dev/categories: Security
+    tekton.dev/displayName: Generate Network Policy using StackRox/RHACS CLI - roxctl
+    tekton.dev/pipelines.minVersion: 0.18.0
+    tekton.dev/platforms: linux/amd64
+    tekton.dev/tags: security
+  labels:
+    app.kubernetes.io/version: "0.1"
+  name: rhacs-netpol-generate
+spec:
+  description: Generate a network policy using StackRox/RHACS CLI - roxctl.
+    This tasks allows you to generate network policy using the roxctl netpol subcommand. It recommends
+    Network Policies based on deployment information. It's a companion to the rhacs-netpol-connectivity
+    task, which does connectivity analysis of network policy resources.
+  params:
+  - description: Directory path where the deployment manifests are stored
+    name: manifest_path
+    type: string
+  - default: netpol.yaml
+    description: Generated network policy output file
+    name: netpol_out
+    type: string
+  steps:
+  - computeResources: {}
+    image: docker.io/centos@sha256:a1801b843b1bfaf77c501e7a6d3f709401a1e0c83863037fa3aab063a7fdb9dc
+    name: rhacs-netpol-gen
+    script: |
+      #!/usr/bin/env bash
+      set +x
+      export NO_COLOR="True"
+      curl -s "https://mirror.openshift.com/pub/rhacs/assets/latest/bin/linux/roxctl" --output ./roxctl  > /dev/null; \
+      echo "Getting roxctl"
+      chmod +x ./roxctl > /dev/null; ./roxctl netpol generate /workspace/manifest_dir/$(params.manifest_path) > /workspace/manifest_dir/$(params.manifest_path)/$(params.netpol_out)
+      ls -l /workspace/manifest_dir/$(params.manifest_path)/$(params.netpol_out)
+  workspaces:
+  - description: Directory where the deployment manifests are stored. Could be a git source from previous task.
+    name: manifest_dir
